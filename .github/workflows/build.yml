@@ -1,0 +1,28 @@
+name: Build
+on: [push, workflow_dispatch]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unzip sources
+        run: |
+          if [ -f Bridgecast.zip ]; then
+            unzip -q Bridgecast.zip -d _x
+            rsync -a --exclude '.github' _x/Bridgecast/ ./
+            rm -rf _x Bridgecast.zip
+            git config user.name "github-actions"
+            git config user.email "actions@github.com"
+            git add -A
+            git commit -m "Extract sources"
+            git push
+          fi
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "8.7" }
+      - run: gradle assembleDebug
+      - uses: actions/upload-artifact@v4
+        with: { name: app-debug, path: app/build/outputs/apk/debug/*.apk }
